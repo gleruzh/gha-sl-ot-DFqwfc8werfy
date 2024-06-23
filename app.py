@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify
+from slack_bolt import App as SlackApp
+from slack_bolt.adapter.flask import SlackRequestHandler
 import requests
 import os
 from dotenv import load_dotenv
@@ -6,17 +8,45 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Initialize a Slack Bolt app
+slack_app = SlackApp(token=os.getenv("SLACK_BOT_TOKEN"))
+
+# Initialize Flask app
 app = Flask(__name__)
+handler = SlackRequestHandler(slack_app)
+
+@app.route('/slack/events', methods=['POST'])
+def slack_events():
+    return handler.handle(request)
 
 @app.route('/deployments', methods=['GET'])
 def get_deployments():
     env = request.args.get('env')
-    if env:
-        repo = os.getenv('REPO_NAME')
-        deployment_info = get_last_deployed_version(repo, env)
-        return jsonify(deployment_info)
-    else:
+    if not env:
         return jsonify({"error": "Please provide an environment"}), 400
+
+    repo = os.getenv('REPO_NAME')
+    deployment_info = get_last_deployed_version(repo, env)
+    return jsonify(deployment_info)
+
+@slack_app.command("/deployments")
+def handle_deployments(ack, respond, command):
+    ack()
+    env = command['text'].strip()
+    if not env:
+        respond({"text": "Please provide an environment"})
+        return
+
+    repo = os.getenv('REPO_NAME')
+    deployment_info = get_last_deployed_version(repo, env)
+    if "error" in deployment_info:
+        respond({"text": deployment_info["error"]})
+    else:
+        message = (f"Environment: {deployment_info['environment']}\n"
+                   f"SHA: {deployment_info['sha']}\n"
+                   f"Ref: {deployment_info['ref']}\n"
+                   f"Ref Type: {deployment_info['ref_type']}")
+        respond({"text": message})
 
 def get_last_deployed_version(repo, env):
     # Fetch all deployments for the repository
@@ -67,4 +97,4 @@ def get_last_deployed_version(repo, env):
     return {'error': 'No successful deployment found for this environment'}
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
