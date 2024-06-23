@@ -16,7 +16,7 @@ def test_bot_token(token, channel_id):
     try:
         response = client.chat_postMessage(
             channel=channel_id,
-            text="App is up"
+            text="Testing Slack bot token"
         )
         print(f"Message posted successfully: {response['ts']}")
         return True
@@ -62,20 +62,34 @@ if __name__ == '__main__':
     def handle_deployments(ack, respond, command):
         ack()
         env = command['text'].strip()
-        if not env:
-            respond({"text": "Please provide an environment"})
-            return
-
         repo = os.getenv('REPO_NAME')
-        deployment_info = get_last_deployed_version(repo, env)
-        if "error" in deployment_info:
-            respond({"text": deployment_info["error"]})
-        else:
-            message = (f"Environment: {deployment_info['environment']}\n"
-                       f"SHA: {deployment_info['sha']}\n"
-                       f"Ref: {deployment_info['ref']}\n"
-                       f"Ref Type: {deployment_info['ref_type']}")
+
+        if env == 'all':
+            environments = ['dev', 'qa', 'stage', 'prod']  # Add all your environments here
+            all_deployments = {}
+            for environment in environments:
+                deployment_info = get_last_deployed_version(repo, environment)
+                all_deployments[environment] = deployment_info
+            
+            message = "\n".join([
+                f"Environment: {env_info['environment']}\nSHA: {env_info['sha']}\nRef: {env_info['ref']}\nRef Type: {env_info['ref_type']}\n"
+                for env_info in all_deployments.values()
+            ])
             respond({"text": message})
+        else:
+            if not env:
+                respond({"text": "Please provide an environment"})
+                return
+
+            deployment_info = get_last_deployed_version(repo, env)
+            if "error" in deployment_info:
+                respond({"text": deployment_info["error"]})
+            else:
+                message = (f"Environment: {deployment_info['environment']}\n"
+                           f"SHA: {deployment_info['sha']}\n"
+                           f"Ref: {deployment_info['ref']}\n"
+                           f"Ref Type: {deployment_info['ref_type']}")
+                respond({"text": message})
 
     def get_last_deployed_version(repo, env):
         # Fetch all deployments for the repository
