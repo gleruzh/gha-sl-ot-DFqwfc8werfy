@@ -8,7 +8,7 @@ app = Flask(__name__)
 def get_deployments():
     env = request.args.get('env')
     if env:
-        repo = 'your-repo-name'  # Replace with your actual repo name
+        repo = 'gha-sl-ot-DFqwfc8werfy'  # Replace with your actual repo name
         last_deployed_version = get_last_deployed_version(repo, env)
         return jsonify({
             "environment": env,
