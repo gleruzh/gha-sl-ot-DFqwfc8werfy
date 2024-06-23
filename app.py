@@ -13,11 +13,8 @@ def get_deployments():
     env = request.args.get('env')
     if env:
         repo = os.getenv('REPO_NAME')
-        last_deployed_version = get_last_deployed_version(repo, env)
-        return jsonify({
-            "environment": env,
-            "last_deployed_version": last_deployed_version
-        })
+        deployment_info = get_last_deployed_version(repo, env)
+        return jsonify(deployment_info)
     else:
         return jsonify({"error": "Please provide an environment"}), 400
 
@@ -33,7 +30,7 @@ def get_last_deployed_version(repo, env):
     try:
         deployments = response.json()
     except ValueError:
-        return 'Invalid JSON response from GitHub API'
+        return {'error': 'Invalid JSON response from GitHub API'}
     
     # Filter deployments by environment and fetch statuses for each deployment
     for deployment in deployments:
@@ -49,9 +46,25 @@ def get_last_deployed_version(repo, env):
             
             # Check if the last status is 'success'
             if statuses and statuses[0]['state'] == 'success':
-                return deployment.get('sha', 'SHA not found')
+                ref = deployment.get('ref')
+                sha = deployment.get('sha', 'SHA not found')
+
+                # Determine if the ref is a tag or branch
+                ref_type = 'branch'
+                if ref.startswith('refs/tags/'):
+                    ref_type = 'tag'
+                    ref = ref[len('refs/tags/'):]
+                elif ref.startswith('refs/heads/'):
+                    ref = ref[len('refs/heads/'):]
+                
+                return {
+                    'environment': env,
+                    'sha': sha,
+                    'ref': ref,
+                    'ref_type': ref_type
+                }
     
-    return 'No successful deployment found for this environment'
+    return {'error': 'No successful deployment found for this environment'}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

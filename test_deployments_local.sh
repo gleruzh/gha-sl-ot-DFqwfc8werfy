@@ -15,7 +15,7 @@ sleep 1
 for env in qa dev stage prod
 do
   echo "Testing environment: $env"
-  curl "http://localhost:5000/deployments?env=$env"
+  curl -sq "http://localhost:5000/deployments?env=$env"
   # echo -e "\n"
 done
 

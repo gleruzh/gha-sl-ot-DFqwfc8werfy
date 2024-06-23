@@ -1,0 +1,24 @@
+name: Test Deployments
+
+# on: [push]
+on:
+  workflow_dispatch:
+
+jobs:
+  test-deployments:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Test deployments for different environments
+      env:
+        DEPLOYED_APP_DOMAIN: ${{ secrets.DEPLOYED_APP_DOMAIN }}
+      run: |
+        # Test the /deployments endpoint for different environments
+        for env in qa dev stage prod
+        do
+          echo "Testing environment: $env"
+          curl -sq "https://${DEPLOYED_APP_DOMAIN}/deployments?env=$env"
+        done
