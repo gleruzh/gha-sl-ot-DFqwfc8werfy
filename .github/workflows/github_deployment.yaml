@@ -1,0 +1,34 @@
+name: Manual Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: 'Deploy to environment'
+        required: true
+        options:
+          - dev
+          - qa
+          - prod
+          - stage
+        default: 'dev'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Deployment
+        uses: chrnorm/deployment-status@v2
+        with:
+          environment: ${{ github.event.inputs.environment }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # sha: ${{ github.sha }}
+          # owner: ${{ github.repository_owner }}
+          # repo: ${{ github.event.repository.name }}
+          # state: 'success'
+          # description: 'Manual deployment triggered via workflow_dispatch'
