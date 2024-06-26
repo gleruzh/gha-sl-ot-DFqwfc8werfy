@@ -1,0 +1,6 @@
+.gitignore
+README.md
+*.sh
+venv/*
+.env
+__pycache__/*
